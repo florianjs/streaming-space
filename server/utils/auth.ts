@@ -1,5 +1,6 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import type { H3Event } from 'h3';
+import { getHeader, getCookie, createError } from 'h3';
 
 interface TokenPayload {
   userId: string;
@@ -45,9 +46,9 @@ export function extractToken(event: H3Event): string | null {
 }
 
 /**
- * Verify JWT token and return decoded payload
+ * Get JWT secret as TextEncoder for jose
  */
-export function verifyJwtToken(token: string): TokenPayload {
+function getJWTSecret(): Uint8Array {
   const jwtSecret = process.env.JWT_SECRET;
 
   if (!jwtSecret) {
@@ -57,20 +58,51 @@ export function verifyJwtToken(token: string): TokenPayload {
     });
   }
 
+  return new TextEncoder().encode(jwtSecret);
+}
+
+/**
+ * Create JWT token using jose
+ */
+export async function createJwtToken(
+  payload: Omit<TokenPayload, 'iat' | 'exp'>
+): Promise<string> {
+  const secret = getJWTSecret();
+
+  return await new SignJWT({
+    userId: payload.userId,
+    email: payload.email,
+    verified: payload.verified,
+    pocketBaseToken: payload.pocketBaseToken,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(secret);
+}
+
+/**
+ * Verify JWT token and return decoded payload
+ */
+export async function verifyJwtToken(token: string): Promise<TokenPayload> {
+  const secret = getJWTSecret();
+
   try {
-    const decoded = jwt.verify(token, jwtSecret) as TokenPayload;
+    const { payload } = await jwtVerify(token, secret);
 
-    // Additional expiration check
-    if (decoded.exp < Math.floor(Date.now() / 1000)) {
-      throw new Error('Token expired');
-    }
-
-    return decoded;
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+      verified: payload.verified as boolean,
+      pocketBaseToken: payload.pocketBaseToken as string,
+      iat: payload.iat as number,
+      exp: payload.exp as number,
+    };
   } catch (error: any) {
     throw createError({
       statusCode: 401,
       statusMessage:
-        error.message === 'Token expired' ? 'Token expired' : 'Invalid token',
+        error.code === 'ERR_JWT_EXPIRED' ? 'Token expired' : 'Invalid token',
     });
   }
 }
@@ -79,7 +111,9 @@ export function verifyJwtToken(token: string): TokenPayload {
  * Get authenticated user from request
  * Throws error if token is missing or invalid
  */
-export function getAuthenticatedUser(event: H3Event): TokenPayload {
+export async function getAuthenticatedUser(
+  event: H3Event
+): Promise<TokenPayload> {
   const token = extractToken(event);
 
   if (!token) {
@@ -89,18 +123,18 @@ export function getAuthenticatedUser(event: H3Event): TokenPayload {
     });
   }
 
-  return verifyJwtToken(token);
+  return await verifyJwtToken(token);
 }
 
 /**
  * Optional authentication - returns user if token is valid, null otherwise
  * Does not throw errors for missing/invalid tokens
  */
-export function getOptionalAuthenticatedUser(
+export async function getOptionalAuthenticatedUser(
   event: H3Event
-): TokenPayload | null {
+): Promise<TokenPayload | null> {
   try {
-    return getAuthenticatedUser(event);
+    return await getAuthenticatedUser(event);
   } catch {
     return null;
   }

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   mediaRateLimit(event);
 
   // Require authentication for creating media
-  const user = getAuthenticatedUser(event);
+  const user = await getAuthenticatedUser(event);
 
   const config = useRuntimeConfig();
 

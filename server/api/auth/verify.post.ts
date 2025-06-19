@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { verifyJwtToken } from '../../utils/auth';
 
 interface TokenPayload {
   userId: string;
@@ -23,25 +23,8 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
-
-    if (!jwtSecret) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'JWT_SECRET environment variable is required',
-      });
-    }
-
-    // Verify the JWT token
-    const decoded = jwt.verify(token, jwtSecret) as TokenPayload;
-
-    // Check if token is expired (additional check, though jwt.verify should handle this)
-    if (decoded.exp < Math.floor(Date.now() / 1000)) {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Token expired',
-      });
-    }
+    // Verify the JWT token using jose
+    const decoded = await verifyJwtToken(token);
 
     // Return user data without sensitive information
     return {
@@ -58,18 +41,8 @@ export default defineEventHandler(async (event) => {
       console.error('Token verification error:', error);
     }
 
-    if (error.name === 'JsonWebTokenError') {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Invalid token',
-      });
-    }
-
-    if (error.name === 'TokenExpiredError') {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Token expired',
-      });
+    if (error.statusCode === 401) {
+      throw error;
     }
 
     if (error.statusCode) {

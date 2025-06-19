@@ -3,7 +3,7 @@ import logger from '../../../utils/logger';
 
 export default defineEventHandler(async (event) => {
   // Verify JWT authentication first
-  const user = getAuthenticatedUser(event);
+  const user = await getAuthenticatedUser(event);
 
   const query = getQuery(event);
   const token = query.t as string;

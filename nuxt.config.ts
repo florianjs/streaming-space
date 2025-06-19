@@ -20,6 +20,19 @@ export default defineNuxtConfig({
         },
       },
     },
+    // Cloudflare Pages configuration
+    cloudflare: {
+      pages: {
+        routes: {
+          exclude: ['/favicon.ico'],
+        },
+      },
+    },
+    experimental: {
+      wasm: true,
+    },
+    // Explicitly disable Node.js for better Cloudflare Workers compatibility
+    node: false,
   },
 
   // Video.js and WebTorrent configuration

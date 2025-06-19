@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   apiRateLimit(event);
 
   // Require authentication for creating videos
-  const user = getAuthenticatedUser(event);
+  const user = await getAuthenticatedUser(event);
 
   const config = useRuntimeConfig();
   const body = await readBody(event);

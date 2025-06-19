@@ -261,6 +261,22 @@ npm run db:setup     # Initialize database (if applicable)
 
 ### Frontend Deployment
 
+The application is optimized for **Cloudflare Pages** deployment with Node.js compatibility enabled.
+
+#### Cloudflare Pages (Recommended)
+
+```bash
+# Build for Cloudflare Pages
+npm run build
+
+# Deploy using Wrangler CLI
+npx wrangler pages deploy dist/
+```
+
+The project includes `wrangler.toml` with Node.js compatibility enabled to support JWT operations.
+
+#### Other Platforms
+
 Deploy to your preferred platform:
 
 ```bash
@@ -281,7 +297,8 @@ npm run build
 Ensure production environment variables are configured:
 
 - Update `NUXT_PUBLIC_BASE_URL` to your production PocketBase URL
-- Configure any additional API keys
+- Set `JWT_SECRET` to a secure random string in production
+- Configure any additional API keys (OMDB, etc.)
 - Set up proper CORS policies in PocketBase
 
 ## 🛠️ Troubleshooting
@@ -304,6 +321,12 @@ Ensure production environment variables are configured:
 - Check if admin account is created in PocketBase
 - Verify auth tokens in browser localStorage
 - Clear browser cache/cookies if needed
+
+**❌ Cloudflare Pages deployment errors**
+
+- The project now uses `jose` library instead of `jsonwebtoken` for better edge compatibility
+- Node.js compatibility is enabled via `wrangler.toml`
+- If you encounter "Object prototype" errors, ensure you're using the latest build
 
 **❌ Video playback issues**
 

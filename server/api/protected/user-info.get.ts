@@ -2,7 +2,7 @@ import { getAuthenticatedUser } from '../../utils/auth';
 
 export default defineEventHandler(async (event) => {
   // This endpoint requires authentication
-  const user = getAuthenticatedUser(event);
+  const user = await getAuthenticatedUser(event);
 
   // Return user information
   return {

@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     const { verifyJwtToken } = await import('../../utils/auth');
 
     try {
-      verifyJwtToken(tokenCookie);
+      await verifyJwtToken(tokenCookie);
     } catch (error) {
       // Token is invalid, clear cookies
       deleteCookie(event, 'auth_token', {

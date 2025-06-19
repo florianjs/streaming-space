@@ -1,0 +1,4 @@
+name = "streaming-space"
+compatibility_date = "2023-05-18"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist" 

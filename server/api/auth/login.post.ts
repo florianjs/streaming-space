@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { createJwtToken } from '../../utils/auth';
 import { authRateLimit } from '../../utils/rateLimit';
 import { loginSchema, validateInput } from '../../utils/validation';
 
@@ -82,19 +82,13 @@ export default defineEventHandler(async (event) => {
     const pocketBaseAuth: PocketBaseAuthResponse =
       await pocketBaseResponse.json();
 
-    // Create our own JWT token with user data
-    const tokenPayload = {
+    // Create our own JWT token with user data using jose
+    const jwtToken = await createJwtToken({
       userId: pocketBaseAuth.record.id,
       email: pocketBaseAuth.record.email,
       verified: pocketBaseAuth.record.verified,
       // Include the PocketBase token for backend API calls if needed
       pocketBaseToken: pocketBaseAuth.token,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
-    };
-
-    const jwtToken = jwt.sign(tokenPayload, jwtSecret, {
-      algorithm: 'HS256',
     });
 
     // Set httpOnly cookie for secure token storage
