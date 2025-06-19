@@ -140,7 +140,7 @@ This will create all necessary collections:
 
    ```bash
    # PocketBase Configuration
-   NUXT_PUBLIC_BASE_URL=http://localhost:8080
+   POCKETBASE_PUBLIC_BASE_URL=http://localhost:8080
    # or your Collify URL: https://your-app.collify.io
 
    # Optional: OMDB API for movie metadata
