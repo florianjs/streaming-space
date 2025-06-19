@@ -9,7 +9,7 @@ A modern, full-featured streaming application built with **Nuxt 4** and **Pocket
 >
 > We're actively working on fixes. Please report any additional bugs you encounter!
 
-[![Demo](https://img.shields.io/badge/🌐_Live_Demo-onlyghost.com-blue?style=for-the-badge)](https://streaming.florianargaud.com/)
+[![Demo](https://img.shields.io/badge/🌐_Live_Demo-streming.florianargaud.com-blue?style=for-the-badge)](https://streaming.florianargaud.com/)
 [![Built with Nuxt](https://img.shields.io/badge/Built_with-Nuxt.js-00DC82?style=for-the-badge&logo=nuxt.js)](https://nuxt.com)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/folken)
 
