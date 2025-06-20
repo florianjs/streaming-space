@@ -12,7 +12,7 @@
           <!-- Main Content Area -->
           <main class="flex-1">
             <!-- Loading State -->
-            <div v-if="isLoading || manualLoading" class="text-center py-16">
+            <div v-if="isLoading" class="text-center py-16">
               <div
                 class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mb-6 animate-pulse"
               >
@@ -226,17 +226,41 @@
 import type { Video } from '../composables/useVideos';
 import type { SortBy } from '../composables/useVideoSorting';
 
-const { videos, isLoading, error, fetchVideos, searchVideos, forceRefetch } =
-  useVideos();
-const { applyFiltersAndSort, getDefaultSort } = useVideoSorting();
-const { categories: serverCategories, fetchCategories: fetchServerCategories } =
-  useCategoriesServer();
+// Use Nuxt's server-side data fetching for better SSR support
+const {
+  data: videosData,
+  pending: videosLoading,
+  error: videosError,
+  refresh: refreshVideos,
+} = await useFetch('/api/videos', {
+  key: 'videos',
+  default: () => ({ videos: [], pagination: null }),
+  transform: (data: any) => data || { videos: [], pagination: null },
+});
 
-// Add local state for testing
-const localVideos = ref<Video[]>([]);
-const localIsLoading = ref(false);
-const localError = ref<string | null>(null);
-const manualLoading = ref(false);
+const {
+  data: categoriesData,
+  pending: categoriesLoading,
+  error: categoriesError,
+  refresh: refreshCategories,
+} = await useFetch('/api/categories', {
+  key: 'categories',
+  query: { active: 'true', sort: 'sort_order,name' },
+  default: () => ({ categories: [], pagination: null }),
+  transform: (data: any) => data || { categories: [], pagination: null },
+});
+
+// Create reactive computed values
+const videos = computed(() => videosData.value?.videos || []);
+const serverCategories = computed(() => categoriesData.value?.categories || []);
+const isLoading = computed(
+  () => videosLoading.value || categoriesLoading.value
+);
+const error = computed(
+  () => videosError.value?.message || categoriesError.value?.message || null
+);
+
+const { applyFiltersAndSort, getDefaultSort } = useVideoSorting();
 
 const searchQuery = ref('');
 const sortBy = ref<SortBy>(getDefaultSort());
@@ -249,76 +273,6 @@ const scrollToContent = () => {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 };
-
-// Ensure videos and categories are loaded
-console.log('[Index Page] Script setup running');
-console.log('[Index Page] videos.value:', videos.value);
-console.log('[Index Page] isLoading.value:', isLoading.value);
-console.log('[Index Page] error.value:', error.value);
-
-// Simple client-side data loading
-const loadInitialData = async () => {
-  console.log('[Index Page] loadInitialData called');
-  if (videos.value.length === 0 && !isLoading.value && !error.value) {
-    console.log('[Index Page] Triggering initial video fetch...');
-    manualLoading.value = true;
-    try {
-      await fetchVideos();
-      console.log(
-        '[Index Page] Initial fetch completed, videos:',
-        videos.value.length
-      );
-    } catch (err) {
-      console.error('[Index Page] Initial fetch failed:', err);
-    } finally {
-      manualLoading.value = false;
-    }
-  }
-
-  if (serverCategories.value.length === 0) {
-    console.log('[Index Page] Fetching categories...');
-    try {
-      const fetchedCategories = await fetchServerCategories({
-        active: true,
-        sort: 'sort_order,name',
-      });
-      console.log(
-        '[Index Page] Categories fetched:',
-        fetchedCategories?.length || 0
-      );
-      console.log('[Index Page] Categories data:', fetchedCategories);
-    } catch (error) {
-      console.error('[Index Page] Error fetching categories:', error);
-    }
-  } else {
-    console.log(
-      '[Index Page] Categories already loaded:',
-      serverCategories.value.length
-    );
-  }
-};
-
-// Only run data loading on client-side mount, not immediately
-// This prevents SSR/hydration issues
-
-onMounted(async () => {
-  console.log('[Index Page] onMounted called');
-  console.log('[Index Page] Process.client:', process.client);
-
-  // Load data only after component is mounted on client
-  await loadInitialData();
-
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      // Handle escape key if needed
-    }
-  };
-  document.addEventListener('keydown', handleEscape);
-
-  onUnmounted(() => {
-    document.removeEventListener('keydown', handleEscape);
-  });
-});
 
 // Watch for videos to be loaded for debugging
 watch(
@@ -333,6 +287,18 @@ watch(
   },
   { immediate: true }
 );
+
+// Client-side search function
+const searchVideos = (query: string): Video[] => {
+  if (!query) return videos.value;
+
+  const searchTerm = query.toLowerCase();
+  return videos.value.filter(
+    (video) =>
+      video.title.toLowerCase().includes(searchTerm) ||
+      video.description.toLowerCase().includes(searchTerm)
+  );
+};
 
 const filteredVideos = computed(() => {
   try {
@@ -423,11 +389,14 @@ const playVideo = (video: Video) => {
   navigateTo(`/play/${video.id}`);
 };
 
+const fetchVideos = async () => {
+  await refreshVideos();
+};
+
 const manualRefresh = async () => {
   console.log('[Index Page] Manual refresh called');
   try {
-    // Force refetch by clearing cache and fetching fresh
-    await forceRefetch();
+    await Promise.all([refreshVideos(), refreshCategories()]);
     console.log(
       '[Index Page] Manual refresh completed, videos:',
       videos.value.length

@@ -36,10 +36,20 @@ interface PocketBaseResponse {
 
 export default defineEventHandler(async (event) => {
   // Get user authentication (optional for public videos)
-  const user = getOptionalAuthenticatedUser(event);
+  const user = await getOptionalAuthenticatedUser(event);
 
   const config = useRuntimeConfig();
   const query = getQuery(event);
+
+  // Check if baseUrl is configured
+  if (!config.public.baseUrl) {
+    console.error('baseUrl is not configured');
+    throw createError({
+      statusCode: 500,
+      statusMessage:
+        'baseUrl is not configured. Please set baseUrl environment variable.',
+    });
+  }
 
   // Build query parameters
   const params = new URLSearchParams({

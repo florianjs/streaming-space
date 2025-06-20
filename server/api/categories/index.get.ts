@@ -2,10 +2,20 @@ import { getOptionalAuthenticatedUser } from '../../utils/auth';
 
 export default defineEventHandler(async (event) => {
   // Optional authentication - allows both public and authenticated access
-  const user = getOptionalAuthenticatedUser(event);
+  const user = await getOptionalAuthenticatedUser(event);
 
   const config = useRuntimeConfig();
   const query = getQuery(event);
+
+  // Check if baseUrl is configured
+  if (!config.public.baseUrl) {
+    console.error('baseUrl is not configured');
+    throw createError({
+      statusCode: 500,
+      statusMessage:
+        'baseUrl is not configured. Please set baseUrl environment variable.',
+    });
+  }
 
   try {
     // Build query parameters
