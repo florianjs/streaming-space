@@ -1,4 +1,18 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
+// Extract domain from PocketBase URL for CSP
+const getPocketBaseDomain = () => {
+  const baseUrl = process.env.POCKETBASE_PUBLIC_BASE_URL;
+  if (!baseUrl) return '';
+
+  try {
+    const url = new URL(baseUrl);
+    return url.hostname;
+  } catch {
+    return '';
+  }
+};
+
 export default defineNuxtConfig({
   future: {
     compatibilityVersion: 4,
@@ -17,8 +31,18 @@ export default defineNuxtConfig({
           'X-XSS-Protection': '1; mode=block',
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-          'Content-Security-Policy':
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' static.cloudflareinsights.com; connect-src 'self' static.cloudflareinsights.com",
+          'Content-Security-Policy': (() => {
+            const pocketBaseDomain = getPocketBaseDomain();
+            const baseCSP =
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'";
+
+            if (pocketBaseDomain) {
+              return `${baseCSP}; img-src 'self' data: ${pocketBaseDomain}; connect-src 'self' static.cloudflareinsights.com ${pocketBaseDomain}`;
+            } else {
+              // Fallback if PocketBase URL is not configured
+              return `${baseCSP}; img-src 'self' data: https:; connect-src 'self' static.cloudflareinsights.com`;
+            }
+          })(),
         },
       },
     },
